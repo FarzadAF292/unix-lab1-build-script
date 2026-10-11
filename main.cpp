@@ -1,3 +1,4 @@
+// Output: hello
 #include <iostream>
 
 using namespace std;
