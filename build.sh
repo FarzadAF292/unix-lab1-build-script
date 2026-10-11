@@ -23,6 +23,13 @@ if [ -z "$OUTPUT" ]; then
     exit 3
 fi
 
+case "$OUTPUT" in
+    */* | .* )
+        echo "Error: invalid output filename: $OUTPUT" >&2
+        exit 7
+        ;;
+esac
+
 TMPDIR=$(mktemp -d)
 
 if [ ! -d "$TMPDIR" ]; then
