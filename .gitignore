@@ -1,0 +1,6 @@
+# Compiled files
+hello
+hello.exe
+*.o
+*.obj
+*.exe
