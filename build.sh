@@ -30,6 +30,35 @@ if [ ! -d "$TMPDIR" ]; then
     exit 4
 fi
 
+cleanup()
+{
+    rm -rf "$TMPDIR"
+}
+
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
+trap 'cleanup' 0
+
 echo "Source file: $SOURCE"
 echo "Output file: $OUTPUT"
 echo "Temporary directory: $TMPDIR"
+
+g++ "$SOURCE" -o "$TMPDIR/$OUTPUT"
+
+if [ "$?" -ne 0 ]; then
+    echo "Error: compilation failed" >&2
+    exit 5
+fi
+
+SOURCE_DIR=$(dirname "$SOURCE")
+
+mv "$TMPDIR/$OUTPUT" "$SOURCE_DIR/$OUTPUT"
+
+if [ "$?" -ne 0 ]; then
+    echo "Error: could not move output file" >&2
+    exit 6
+fi
+
+echo "Compilation successful"
+echo "Created: $SOURCE_DIR/$OUTPUT"
