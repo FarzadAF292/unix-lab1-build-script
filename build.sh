@@ -6,17 +6,29 @@ if [ "$#" -ne 1 ]; then
 fi
 
 SOURCE=$1
+START_DIR=$(pwd)
 
-if [ ! -f "$SOURCE" ]; then
+case "$SOURCE" in
+    /*)
+        SOURCE_ABS=$SOURCE
+        ;;
+    *)
+        SOURCE_ABS="$START_DIR/$SOURCE"
+        ;;
+esac
+
+if [ ! -f "$SOURCE_ABS" ]; then
     echo "Error: source file not found: $SOURCE" >&2
     exit 2
 fi
 
-OUTPUT=$(awk '/Output:/ {
-    sub(/^.*Output:[[:space:]]*/, "")
-    print
-    exit
-}' "$SOURCE")
+OUTPUT=$(awk '
+    /^[[:space:]]*\/\/[[:space:]]*Output:/ {
+        sub(/^[[:space:]]*\/\/[[:space:]]*Output:[[:space:]]*/, "")
+        print
+        exit
+    }
+' "$SOURCE_ABS")
 
 if [ -z "$OUTPUT" ]; then
     echo "Error: Output comment not found" >&2
@@ -24,7 +36,7 @@ if [ -z "$OUTPUT" ]; then
 fi
 
 case "$OUTPUT" in
-    */* | .* )
+    */* | .*)
         echo "Error: invalid output filename: $OUTPUT" >&2
         exit 7
         ;;
@@ -39,28 +51,33 @@ fi
 
 cleanup()
 {
+    cd "$START_DIR" 2>/dev/null
     rm -rf "$TMPDIR"
 }
 
-trap 'exit 130' INT
-trap 'exit 143' TERM
 trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 131' QUIT
+trap 'exit 143' TERM
 trap 'cleanup' 0
 
 echo "Source file: $SOURCE"
 echo "Output file: $OUTPUT"
 echo "Temporary directory: $TMPDIR"
 
-g++ "$SOURCE" -o "$TMPDIR/$OUTPUT"
+cd "$TMPDIR" || {
+    echo "Error: could not enter temporary directory" >&2
+    exit 8
+}
+
+g++ "$SOURCE_ABS" -o "$OUTPUT"
 
 if [ "$?" -ne 0 ]; then
     echo "Error: compilation failed" >&2
     exit 5
 fi
 
-SOURCE_DIR=$(dirname "$SOURCE")
-
-mv "$TMPDIR/$OUTPUT" "$SOURCE_DIR/$OUTPUT"
+mv "$OUTPUT" "$START_DIR/$OUTPUT"
 
 if [ "$?" -ne 0 ]; then
     echo "Error: could not move output file" >&2
@@ -68,4 +85,4 @@ if [ "$?" -ne 0 ]; then
 fi
 
 echo "Compilation successful"
-echo "Created: $SOURCE_DIR/$OUTPUT"
+echo "Created: $START_DIR/$OUTPUT"
