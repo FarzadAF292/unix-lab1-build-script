@@ -55,10 +55,19 @@ cleanup()
     rm -rf "$TMPDIR"
 }
 
-trap 'exit 129' HUP
-trap 'exit 130' INT
-trap 'exit 131' QUIT
-trap 'exit 143' TERM
+terminate()
+{
+    code=$1
+
+    trap - 0 HUP INT QUIT TERM
+    cleanup
+    exit "$code"
+}
+
+trap 'terminate 129' HUP
+trap 'terminate 130' INT
+trap 'terminate 131' QUIT
+trap 'terminate 143' TERM
 trap 'cleanup' 0
 
 echo "Source file: $SOURCE"
